@@ -8,14 +8,19 @@ OS_CTRL="10.33.0.10"
 EXEC="ssh ${OS_USER}@${OS_CTRL}"
 COOKBOOK_BASE="$HOME/workspaces/cd-workshop"
 KEYNAME="pingworks"
-HOSTS=("jkmaster|m1.tiny|pingworks/docker-ws-baseimg:0.2|ws-env-pipeline::jkmaster|dash;repo;git" "jkslave1|m1.tiny|pingworks/docker-ws-baseimg:0.2|ws-env-pipeline::jkslave|")
-#HOSTS=("jkmaster|m1.tiny|pingworks/docker-ws-jkmaster:0.1|ws-env-pipeline::jkmaster|dash;repo;git" "jkslave1|m1.tiny|pingworks/docker-ws-jkslave:0.1|ws-env-pipeline::jkslave|")
 DOMAIN="ws.pingworks.net"
 
 if [ ! -z "$1" ]; then
   DOMAIN="$1.$DOMAIN"
+  shift
 fi
-NOVA_BOOT_OPTS="$2"
+
+HOSTS=( "$@" )
+if [ -z "${HOSTS[*]}" ]; then
+  HOSTS=("jkmaster|m1.tiny|pingworks/docker-ws-baseimg:0.2|ws-env-pipeline::jkmaster|dash;repo;git" "jkslave1|m1.tiny|pingworks/docker-ws-baseimg:0.2|ws-env-pipeline::jkslave|")
+  #HOSTS=("jkmaster|m1.tiny|pingworks/docker-ws-jkmaster:0.1|ws-env-pipeline::jkmaster|dash;repo;git" "jkslave1|m1.tiny|pingworks/docker-ws-jkslave:0.1|ws-env-pipeline::jkslave|")
+fi
+#NOVA_BOOT_OPTS="$2"
 
 set -e
 
