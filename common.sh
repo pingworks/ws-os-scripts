@@ -1,5 +1,15 @@
 #!/bin/bash
 
+function join {
+  local separator="$1"
+  shift
+  local vars=( "$@" )
+  local result
+  result="$( printf "${separator}%s" "${vars[@]}" )"
+  result="${result:${#separator}}"
+  echo $result
+}
+
 # Grab a numbered field from python prettytable output
 # Fields are numbered starting with 1
 # Reverse syntax is supported: -1 is the last field, -2 is second to last, etc.
@@ -43,6 +53,40 @@ function get_field {
     done
 }
 
+function run {
+  local cmd=$1
+
+  if [ $DEBUG -ne 0 ]; then
+    set -x
+  fi
+  out=$($EXEC "OS_AUTH_URL=$OS_AUTH_URL OS_USERNAME=$OS_USERNAME OS_PASSWORD=$OS_PASSWORD OS_TENANT_NAME=$OS_TENANT_NAME $cmd")
+  if [ $DEBUG -ne 0 ]; then
+    set +x
+    echo -e "OUTPUT:$out"
+  fi
+  echo -en "$out"
+  return $?
+}
+
+function admin {
+  OS_USERNAME="admin"
+  OS_TENANT_NAME="admin"
+  if [ -z "$OS_ADMIN_PASSWORD" ]; then
+    read -s -p "Admin password: " OS_PASSWORD
+    OS_ADMIN_PASSWORD=$OS_PASSWORD
+    echo
+    echo
+  else
+    OS_PASSWORD=$OS_ADMIN_PASSWORD
+  fi
+}
+
+function user {
+  OS_USERNAME="$USER"
+  OS_TENANT_NAME="$USER"
+  OS_PASSWORD="$USER"
+}
+
 function get {
   local res=$1
   local name=$2
@@ -83,12 +127,51 @@ function get {
       idx_search=3
       idx_result=2
       ;;
+    keypair)
+      cmd="nova keypair-list"
+      idx_search=1
+      ;;
+    project)
+      cmd="openstack project list"
+      ;;
+    user)
+      cmd="openstack user list"
+      ;;
+    role-association)
+      cmd="openstack role list --user $opts --project $opts2"
+      ;;
+    net)
+      cmd="neutron net-list"
+      ;;
+    subnet)
+      cmd="neutron subnet-list"
+      ;;
+    router)
+      cmd="neutron router-list"
+      ;;
+    interface)
+      cmd="neutron router-port-list $name"
+      run " $cmd" | awk -F'[ \t]*\\|[ \t]*' "{ if(/ip_address/) { print \$2 } }" | grep -v '^$'
+      return $?
+      ;;
+    gateway)
+      cmd="neutron router-port-list $opts"
+      idx_search=4
+      ;;
+    port)
+      cmd="neutron port-list"
+      ;;
+    secgroup)
+      cmd="nova secgroup-list-rules $name"
+      run " $cmd" | grep "$(join '.*|.*' $opts)" >/dev/null
+      return $?
+      ;;
     *)
-      echo "Function get, unkown res: $res"
+      echo "Function get, unkown resource: $res"
       exit 1
       ;;
   esac
-  $EXEC "~/openstack.sh demo $cmd" | get_matching_field $idx_search $name $idx_result
+  run " $cmd" | get_matching_field $idx_search $name $idx_result
   return $?
 }
 
@@ -102,18 +185,16 @@ function create {
   local idx_search=1
   local match="id"
   local idx_result=2
-  local user="demo"
 
   case "$res" in
     docker-image)
       $EXEC "docker pull $name"
-      return 0
+      return $?
       ;;
     image)
       cmd="glance image-create"
-      user="admin"
       opts="--is-public true --container-format docker --disk-format raw --name"
-      $EXEC "docker save $name | ~/openstack.sh $OS_USER $cmd $opts $name" | get_matching_field 1 id 2
+      run "docker save $name | $cmd $opts $name" | get_matching_field 1 id 2
       return $?
       ;;
     domain)
@@ -141,15 +222,66 @@ function create {
       tmp="$opts"
       opts="$name"
       name="$tmp"
-      $EXEC "~/openstack.sh $user $cmd $opts $name" && echo $name
-      return 0
+      run "$cmd $opts $name" && echo $name
+      return $?
+      ;;
+    keypair)
+      cmd="nova keypair-add"
+      opts="--pub-key $opts"
+      run "$cmd $opts $name" && echo $name
+      return $?
+      ;;
+    project)
+      cmd="openstack project create"
+      ;;
+    user)
+      cmd="openstack user create"
+      opts="--password $opts"
+      ;;
+    role-association)
+      cmd="openstack role add"
+      opts="--user $opts --project $opts2"
+      ;;
+    net)
+      cmd="neutron net-create"
+      opts="--tenant_id $opts"
+      ;;
+    subnet)
+      cmd="neutron subnet-create"
+      opts="--tenant_id $opts --ip_version 4 --gateway 10.0.$opts3.1 --name $name $opts2 10.0.$opts3.0/24"
+      name=""
+      ;;
+    router)
+      cmd="neutron router-create"
+      opts="--tenant_id $opts"
+      ;;
+    interface)
+      cmd="neutron router-interface-add"
+      run "$cmd $name $opts" >/dev/null && echo $name
+      return $?
+      ;;
+    gateway)
+      cmd="neutron router-gateway-set"
+      run "$cmd $opts $name" >/dev/null && echo $name
+      return $?
+      ;;
+    port)
+      cmd="neutron port-create"
+      tmp="$opts"
+      opts="$name"
+      name="$tmp"
+      opts="--name $opts"
+      ;;
+    secgroup)
+      cmd="nova secgroup-add-rule $name"
+      name=""
       ;;
     *)
-      echo "Function create, unkown res: $res"
+      echo "Function create, unkown resource: $res"
       exit 1
       ;;
   esac
-  $EXEC "~/openstack.sh $user $cmd $opts $name" | get_matching_field $idx_search $match $idx_result
+  run "$cmd $opts $name" | get_matching_field $idx_search $match $idx_result
   return $?
 }
 
@@ -163,7 +295,6 @@ function update {
   local idx_search=1
   local match="id"
   local idx_result=2
-  local user="demo"
 
   case "$res" in
     record)
@@ -171,11 +302,11 @@ function update {
       opts="--data $opts --type $opts2 $opts3"
       ;;
     *)
-      echo "Function update, unkown res: $res"
+      echo "Function update, unkown resource: $res"
       exit 1
       ;;
   esac
-  $EXEC "~/openstack.sh $user $cmd $opts $name" | get_matching_field $idx_search $match $idx_result
+  run "$cmd $opts $name" | get_matching_field $idx_search $match $idx_result
   return $?
 }
 
@@ -185,7 +316,6 @@ function delete {
   local opts="$3"
   local opts2="$4"
   local cmd
-  local user="demo"
 
   case "$res" in
     instance)
@@ -197,12 +327,25 @@ function delete {
     record)
       cmd="designate record-delete"
       ;;
+    keypair)
+      cmd="nova keypair-delete"
+      ;;
+    project)
+      cmd="openstack project delete"
+      ;;
+    user)
+      cmd="openstack user delete"
+      ;;
+    role-association)
+      cmd="openstack role remove"
+      opts="--user $opts --project $opts"
+      ;;
     *)
-      echo "Function delete, unkown res: $res"
+      echo "Function delete, unkown resource: $res"
       exit 1
       ;;
   esac
-  $EXEC "~/openstack.sh $user $cmd $opts $name"
+  run "$cmd $opts $name"
   return $?
 }
 
@@ -211,7 +354,8 @@ function get_or_create {
   local name=$2
   local opts=$3
   local opts2=$4
-  get $res $name || create $res $name $opts $opts2
+  local opts3=$5
+  get $res $name $opts $opts2 || create $res $name $opts $opts2 $opts3
 }
 
 function get_and_delete {
@@ -219,10 +363,10 @@ function get_and_delete {
   local name=$2
   local opts=$3
   local opts2=$4
-  id=$(get $res $name) && delete $res $id
+  id=$(get $res $name $opts $opts2) && delete $res $id $opts $opts2
 }
 
 function get_instances_in_domain {
   local domain=$1
-  $EXEC "~/openstack.sh demo nova list --name .*$domain" | get_field 2 | grep $domain
+  run "nova list --name .*$domain" | get_field 2 | grep $domain
 }

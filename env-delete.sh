@@ -1,16 +1,36 @@
 #!/bin/bash
 
 SCRIPTDIR=$(dirname $0)
+. $SCRIPTDIR/config.sh
 . $SCRIPTDIR/common.sh
 
-OS_USER="ubuntu"
+OS_SSH_USER="ubuntu"
 OS_CTRL="10.33.0.10"
-EXEC="ssh ${OS_USER}@${OS_CTRL}"
-DOMAIN="ws.pingworks.net"
+EXEC="ssh ${OS_SSH_USER}@${OS_CTRL}"
+BASEDOMAIN="ws.pingworks.net"
 
-if [ ! -z "$1" ]; then
-  DOMAIN="$1.$DOMAIN"
+function usage {
+  local msg=$1
+  echo
+  echo $msg
+  echo
+  echo "Usage: $0 <user> <subdomain>"
+  exit 1
+}
+
+USER=$1
+if [ -z "$USER" ]; then
+  usage
 fi
+OS_USER=$USER
+
+if [ -z "$2" ]; then
+  usage
+else
+  DOMAIN="$2.$USER.$BASEDOMAIN"
+fi
+
+user
 
 set -e
 

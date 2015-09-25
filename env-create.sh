@@ -1,26 +1,43 @@
 #!/bin/bash
 
 SCRIPTDIR=$(dirname $0)
+. $SCRIPTDIR/config.sh
 . $SCRIPTDIR/common.sh
 
-OS_USER="ubuntu"
-OS_CTRL="10.33.0.10"
-EXEC="ssh ${OS_USER}@${OS_CTRL}"
-COOKBOOK_BASE="$HOME/workspaces/cd-workshop"
-KEYNAME="pingworks"
-DOMAIN="ws.pingworks.net"
+function usage {
+  local msg=$1
+  echo
+  echo $msg
+  echo
+  echo "Usage: $0 <user> <subdomain> <envfile> [<nova-boot-options>]"
+  exit 1
+}
 
-if [ ! -z "$1" ]; then
-  DOMAIN="$1.$DOMAIN"
-  shift
+USER=$1
+if [ -z "$USER" ]; then
+  usage
+fi
+OS_USER=$USER
+
+if [ -z "$2" ]; then
+  usage
+else
+  DOMAIN="$2.$USER.$BASEDOMAIN"
 fi
 
-HOSTS=( "$@" )
-if [ -z "${HOSTS[*]}" ]; then
-  HOSTS=("jkmaster|m1.tiny|pingworks/docker-ws-baseimg:0.2|ws-env-pipeline::jkmaster|dash;repo;git" "jkslave1|m1.tiny|pingworks/docker-ws-baseimg:0.2|ws-env-pipeline::jkslave|")
-  #HOSTS=("jkmaster|m1.tiny|pingworks/docker-ws-jkmaster:0.1|ws-env-pipeline::jkmaster|dash;repo;git" "jkslave1|m1.tiny|pingworks/docker-ws-jkslave:0.1|ws-env-pipeline::jkslave|")
+ENVFILE=$3
+if [ -z "$ENVFILE" -o ! -r "$ENVFILE" ]; then
+  usage "Envfile not readable: $ENVFILE"
+else
+  HOSTS=( $(<$ENVFILE) )
 fi
-#NOVA_BOOT_OPTS="$2"
+
+KEYNAME="$USER"
+
+user
+get keypair $KEYNAME >/dev/null || usage "Keypair not available: $KEYNAME"
+
+NOVA_BOOT_OPTS="$5"
 
 set -e
 
@@ -41,7 +58,7 @@ for host in ${HOSTS[@]}; do
   echo
 
   echo "====> Saving image to glance: $image .."
-  IMAGE_ID=$(get_or_create image $image)
+  IMAGE_ID=$(get image $image || usage "Glance image: $image does not exist.")
   echo "      $IMAGE_ID"
   echo "====> done."
   echo
