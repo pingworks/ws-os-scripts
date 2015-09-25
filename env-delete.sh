@@ -24,10 +24,9 @@ if [ -z "$USER" ]; then
 fi
 OS_USER=$USER
 
-if [ -z "$2" ]; then
-  usage
-else
-  DOMAIN="$2.$USER.$BASEDOMAIN"
+DOMAIN="$USER.$BASEDOMAIN"
+if [ ! -z "$2" ]; then
+  DOMAIN="$2.$DOMAIN"
 fi
 
 user

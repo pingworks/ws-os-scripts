@@ -9,7 +9,7 @@ function usage {
   echo
   echo $msg
   echo
-  echo "Usage: $0 <user> <keyfile> <ipnet: x>"
+  echo "Usage: $0 <user> <ipnet: x>"
   exit 1
 }
 
@@ -20,12 +20,7 @@ fi
 PROJECT=$USER
 KEYPAIR=$USER
 
-KEYFILE=$2
-if [ -z "$KEYFILE" -o ! -r "$KEYFILE" ]; then
-  usage "Keyfile not readable: $KEYFILE"
-fi
-
-IPNET="$3"
+IPNET="$2"
 if [ -z "$IPNET" ]; then
   usage
 fi
@@ -33,6 +28,12 @@ fi
 admin
 
 set -e
+
+prepare_keyfile $USER
+KEYFILE=$COOKBOOK_BASE/keystore/key.pub
+if [ -z "$KEYFILE" -o ! -r "$KEYFILE" ]; then
+  usage "Keyfile not readable: $KEYFILE"
+fi
 
 echo "====> Creating project: $PROJECT .."
 PROJECT_ID=$(get_or_create project $PROJECT)
@@ -81,8 +82,8 @@ echo "      $PRIV_SUBNET_ID"
 echo "====> done."
 echo
 
-echo "====> Creating router: router1 .."
-ROUTER_ID=$(get_or_create router router1 $PROJECT_ID)
+echo "====> Creating router: router-$USER .."
+ROUTER_ID=$(get_or_create router router-$USER $PROJECT_ID)
 echo "      $ROUTER_ID"
 echo "====> done."
 echo
@@ -100,7 +101,6 @@ echo "      $INTERFACE_ID"
 echo "====> done."
 echo
 
-#admin
 echo "====> Adding security rules .."
 ID=$(get_or_create secgroup default "icmp -1 -1 0.0.0.0/0")
 ID=$(get_or_create secgroup default "tcp 1 65535 0.0.0.0/0")

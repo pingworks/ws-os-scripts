@@ -64,7 +64,7 @@ function run {
     set +x
     echo -e "OUTPUT:$out"
   fi
-  echo -en "$out"
+  echo -e "$out"
   return $?
 }
 
@@ -88,9 +88,10 @@ function user {
 }
 
 function get {
-  local res=$1
-  local name=$2
+  local res="$1"
+  local name="$2"
   local opts="$3"
+  local opts2="$4"
   local cmd
   local idx_search=2
   local idx_result=1
@@ -163,7 +164,7 @@ function get {
       ;;
     secgroup)
       cmd="nova secgroup-list-rules $name"
-      run " $cmd" | grep "$(join '.*|.*' $opts)" >/dev/null
+      run " $cmd" | grep "$(join '.*|.*' $opts)" >/dev/null && echo $opts
       return $?
       ;;
     *)
@@ -176,8 +177,8 @@ function get {
 }
 
 function create {
-  local res=$1
-  local name=$2
+  local res="$1"
+  local name="$2"
   local opts="$3"
   local opts2="$4"
   local opts3="$5"
@@ -194,7 +195,7 @@ function create {
     image)
       cmd="glance image-create"
       opts="--is-public true --container-format docker --disk-format raw --name"
-      run "docker save $name | $cmd $opts $name" | get_matching_field 1 id 2
+      run "docker save $name | OS_AUTH_URL=$OS_AUTH_URL OS_USERNAME=$OS_USERNAME OS_PASSWORD=$OS_PASSWORD OS_TENANT_NAME=$OS_TENANT_NAME  $cmd $opts $name" | get_matching_field 1 id 2
       return $?
       ;;
     domain)
@@ -274,7 +275,8 @@ function create {
       ;;
     secgroup)
       cmd="nova secgroup-add-rule $name"
-      name=""
+      run "$cmd $opts" > /dev/null && echo $opts
+      return $?
       ;;
     *)
       echo "Function create, unkown resource: $res"
@@ -286,8 +288,8 @@ function create {
 }
 
 function update {
-  local res=$1
-  local name=$2
+  local res="$1"
+  local name="$2"
   local opts="$3"
   local opts2="$4"
   local opts3="$5"
@@ -311,8 +313,8 @@ function update {
 }
 
 function delete {
-  local res=$1
-  local name=$2
+  local res="$1"
+  local name="$2"
   local opts="$3"
   local opts2="$4"
   local cmd
@@ -340,33 +342,60 @@ function delete {
       cmd="openstack role remove"
       opts="--user $opts --project $opts"
       ;;
+    router)
+      cmd="neutron router-gateway-clear"
+      run "$cmd $name" >/dev/null
+      if [ ! -z "$opts" ]; then
+        cmd="neutron router-interface-delete"
+        run "$cmd $name $opts" >/dev/null
+      fi
+      cmd="neutron router-delete"
+      opts=""
+      ;;
+    subnet)
+      cmd="neutron subnet-delete"
+      ;;
+    net)
+      cmd="neutron net-delete"
+      ;;
     *)
       echo "Function delete, unkown resource: $res"
       exit 1
       ;;
   esac
-  run "$cmd $opts $name"
+  run "$cmd $opts $name" >/dev/null
   return $?
 }
 
 function get_or_create {
-  local res=$1
-  local name=$2
-  local opts=$3
-  local opts2=$4
-  local opts3=$5
-  get $res $name $opts $opts2 || create $res $name $opts $opts2 $opts3
+  local res="$1"
+  local name="$2"
+  local opts="$3"
+  local opts2="$4"
+  local opts3="$5"
+  get "$res" "$name" "$opts" "$opts2" || create "$res" "$name" "$opts" "$opts2" "$opts3"
 }
 
 function get_and_delete {
-  local res=$1
-  local name=$2
-  local opts=$3
-  local opts2=$4
-  id=$(get $res $name $opts $opts2) && delete $res $id $opts $opts2
+  local res="$1"
+  local name="$2"
+  local opts="$3"
+  local opts2="$4"
+  id=$(get "$res" "$name" "$opts" "$opts2") || true
+  if [ ! -z "$id" ]; then
+    delete "$res" "$id" "$opts" "$opts2"
+  fi
+  return $?
 }
 
 function get_instances_in_domain {
-  local domain=$1
+  local domain="$1"
   run "nova list --name .*$domain" | get_field 2 | grep $domain
+}
+
+function prepare_keyfile {
+  local user="$1"
+  filename=""
+  cd $COOKBOOK_BASE/keystore
+  cat id_rsa_pingworks.pub id_rsa_jenkins.pub id_rsa_$user.pub > key.pub
 }

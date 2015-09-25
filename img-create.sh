@@ -1,6 +1,7 @@
 #!/bin/bash
 
 SCRIPTDIR=$(dirname $0)
+. $SCRIPTDIR/config.sh
 . $SCRIPTDIR/common.sh
 
 OS_SSH_USER="ubuntu"
@@ -23,8 +24,7 @@ fi
 
 set -e
 
-OS_USER="admin"
-echo -n "Openstack admin password: "; read OS_PASSWORD
+admin
 
 echo "====> Pulling docker image: $IMG .."
 DOCKER_IMG=$(get_or_create docker-image $IMG)
@@ -33,7 +33,7 @@ echo "====> done."
 echo
 
 echo "====> Saving image to glance: $IMG .."
-IMAGE_ID=$(get image $IMG || usage "Glance image: $IMG does not exist.")
+IMAGE_ID=$(get_or_create image $IMG)
 echo "      $IMAGE_ID"
 echo "====> done."
 echo
