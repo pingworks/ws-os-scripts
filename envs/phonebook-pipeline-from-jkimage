@@ -1,0 +1,2 @@
+jkmaster|m1.tiny|pingworks/docker-ws-jkmaster:0.1|ws-env-pipeline::jkmaster|dash;repo;git
+jkslave1|m1.tiny|pingworks/docker-ws-jkslave:0.1|ws-env-pipeline::jkslave|

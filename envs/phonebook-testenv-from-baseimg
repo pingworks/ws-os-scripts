@@ -1,0 +1,2 @@
+frontend|m1.tiny|pingworks/docker-ws-baseimg:0.2|ws-env-phonebook::frontend|
+backend|m1.tiny|pingworks/docker-ws-baseimg:0.2|ws-env-phonebook::backend|
