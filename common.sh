@@ -64,7 +64,9 @@ function run {
     set +x
     echo -e "OUTPUT:$out"
   fi
-  echo -e "$out"
+  if [ ! -z "$out" ]; then
+    echo -e "$out"
+  fi
   return $?
 }
 

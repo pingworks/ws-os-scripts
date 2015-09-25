@@ -56,7 +56,7 @@ for host in ${HOSTS[@]}; do
   echo "====> done."
   echo
 
-  echo "====> Saving image to glance: $image .."
+  echo "====> Checking image availability in glance: $image .."
   IMAGE_ID=$(get image $image || usage "Glance image: $image does not exist.")
   echo "      $IMAGE_ID"
   echo "====> done."
@@ -102,6 +102,10 @@ roles:
         cname: '$cname'
         domain: '$DOMAIN'
         dns: '$OS_CTRL'
+        os_url: 'http://$OS_CTRL:5000/v2.0/tokens'
+        os_user: '$OS_USERNAME'
+        os_pass: '$OS_PASSWORD'
+        os_keyname: '$KEYNAME'
 EOF
   mofa provision . -T $NAME -o $cookbook::$recipe
   cd -
