@@ -1,7 +1,7 @@
 OS_SSH_USER="ubuntu"
 OS_CTRL="10.33.0.10"
 EXEC="bash -c"
-COOKBOOK_BASE="$HOME/workspaces/cd-workshop"
+COOKBOOK_BASE="$HOME/workspace/cookbooks"
 BASEDOMAIN="ws.pingworks.net"
 OS_AUTH_URL=http://$OS_CTRL:5000/v2.0
 COMPUTE_NODES="ctrl compute1"
