@@ -9,7 +9,7 @@ function usage {
   echo
   echo $msg
   echo
-  echo "Usage: $0 <user> <subdomain> <envfile> [<nova-boot-options>]"
+  echo "Usage: $0 <user> <envfile> [<subdomain>] [<nova-boot-options>]"
   exit 1
 }
 
@@ -19,16 +19,15 @@ if [ -z "$USER" ]; then
 fi
 OS_USER=$USER
 
-DOMAIN="$USER.$BASEDOMAIN"
-if [ ! -z "$2" ]; then
-  DOMAIN="$2.$DOMAIN"
-fi
-
-ENVFILE=$3
+ENVFILE=$2
 if [ -z "$ENVFILE" -o ! -r "$ENVFILE" ]; then
   usage "Envfile not readable: $ENVFILE"
-else
-  HOSTS=( $(<$ENVFILE) )
+fi
+HOSTS=( $(<$ENVFILE) )
+
+DOMAIN="$USER.$BASEDOMAIN"
+if [ ! -z "$3" ]; then
+  DOMAIN="$3.$DOMAIN"
 fi
 
 KEYNAME="$USER"
@@ -36,7 +35,7 @@ KEYNAME="$USER"
 user
 get keypair $KEYNAME >/dev/null || usage "Keypair not available: $KEYNAME"
 
-NOVA_BOOT_OPTS="$5"
+NOVA_BOOT_OPTS="$4"
 
 set -e
 

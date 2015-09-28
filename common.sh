@@ -49,7 +49,7 @@ function get_field {
         else
             field="\$$(($1 + 1))"
         fi
-        echo "$data" | awk -F'[ \t]*\\|[ \t]*' "{ print $field }"
+        echo "$data" | awk -F'[ \t]*\\|[ \t]*' "{ if(\$2!=\"ID\" && \$2!=\"id\") print $field }"
     done
 }
 
@@ -74,7 +74,7 @@ function admin {
   OS_USERNAME="admin"
   OS_TENANT_NAME="admin"
   if [ -z "$OS_ADMIN_PASSWORD" ]; then
-    read -s -p "Admin password: " OS_PASSWORD
+    read -s -p "Please enter the password for openstack user $USER: " OS_PASSWORD
     OS_ADMIN_PASSWORD=$OS_PASSWORD
     echo
     echo
@@ -86,7 +86,14 @@ function admin {
 function user {
   OS_USERNAME="$USER"
   OS_TENANT_NAME="$USER"
-  OS_PASSWORD="$USER"
+  if [ -z "$OS_USER_PASSWORD" ]; then
+    read -s -p "Please enter the password for openstack user $USER: " OS_PASSWORD
+    OS_USER_PASSWORD=$OS_PASSWORD
+    echo
+    echo
+  else
+    OS_PASSWORD=$OS_USER_PASSWORD
+  fi
 }
 
 function get {
@@ -168,6 +175,9 @@ function get {
       cmd="nova secgroup-list-rules $name"
       run " $cmd" | grep "$(join '.*|.*' $opts)" >/dev/null && echo $opts
       return $?
+      ;;
+    flavor)
+      cmd="nova flavor-list"
       ;;
     *)
       echo "Function get, unkown resource: $res"
@@ -322,6 +332,9 @@ function delete {
   local cmd
 
   case "$res" in
+    image)
+      cmd="glance image-delete"
+      ;;
     instance)
       cmd="nova delete"
       ;;
@@ -360,6 +373,9 @@ function delete {
     net)
       cmd="neutron net-delete"
       ;;
+    flavor)
+      cmd="nova flavor-delete"
+      ;;
     *)
       echo "Function delete, unkown resource: $res"
       exit 1
@@ -392,12 +408,23 @@ function get_and_delete {
 
 function get_instances_in_domain {
   local domain="$1"
-  run "nova list --name .*$domain" | get_field 2 | grep $domain
+  local opts="$2"
+  run "nova list --name .*$domain $opts"  | get_field 2 | grep $domain
 }
 
 function prepare_keyfile {
   local user="$1"
   filename=""
   cd $COOKBOOK_BASE/keystore
-  cat id_rsa_pingworks.pub id_rsa_jenkins.pub id_rsa_$user.pub > key.pub
+  keyfiles="id_rsa_$user.pub id_rsa_jenkins.pub"
+  if [ "$user" != "pingworks" ]; then
+    keyfiles="$keyfiles id_rsa_pingworks.pub"
+  fi
+  for file in $keyfiles; do
+    if [ ! -r "$file" ]; then
+      echo "Keyfile not readable: $file";
+      exit 1
+    fi
+  done
+  cat $keyfiles > key.pub
 }

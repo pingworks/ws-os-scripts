@@ -1,7 +1,11 @@
 OS_SSH_USER="ubuntu"
 OS_CTRL="10.33.0.10"
-EXEC="ssh ${OS_SSH_USER}@${OS_CTRL}"
+EXEC="bash -c"
 COOKBOOK_BASE="$HOME/workspaces/cd-workshop"
 BASEDOMAIN="ws.pingworks.net"
 OS_AUTH_URL=http://$OS_CTRL:5000/v2.0
+COMPUTE_NODES="ctrl compute1"
+DOCKER_BASE_IMG="pingworks/docker-ws-baseimg:0.2"
+DOCKER_JKMASTER_IMG="pingworks/docker-ws-jkmaster:0.2"
+DOCKER_JKSLAVE_IMG="pingworks/docker-ws-jkslave:0.2"
 DEBUG=0

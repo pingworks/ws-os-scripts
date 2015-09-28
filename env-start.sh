@@ -28,14 +28,10 @@ user
 
 set -e
 
-for host in $(get_instances_in_domain $DOMAIN); do
-  echo "====> Deleting instance: $host .."
-  delete instance $host
-  echo "====> done."
-  echo
+echo "====> Starting all instances in: $DOMAIN .."
+for instance in $(get_instances_in_domain $DOMAIN "--status SHUTOFF"); do
+  echo "      $instance"
+  run "nova start $instance" >/dev/null
 done
-
-echo "====> Deleting dns zone: $DOMAIN .."
-DNS_ZONE_ID=$(get_and_delete domain $DOMAIN)
 echo "====> done."
 echo
