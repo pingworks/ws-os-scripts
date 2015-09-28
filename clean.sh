@@ -31,10 +31,9 @@ admin
 users=$(run "openstack project list" | get_field 2 \
   | grep -vE '(demo|nova|neutron|cinder|glance|designate|admin|service)')
 for USER in $users; do
-  user
+  user admin $USER
   domains=$(run "designate domain-list" | get_field 2 | awk '{ print length, $0 }' | sort -r -n -s | cut -d" " -f2- )
   for domain in $domains; do
-    user
     echo "      $domain"
     ID=$(get_and_delete domain ${domain%.})
   done
@@ -46,7 +45,7 @@ echo "====> Deleting routers: .."
 admin
 users=$(run "neutron router-list" | get_field 2| sed -e 's;router-;;')
 for USER in $users; do
-  user
+  user admin $USER
   PRIV_SUBNET_ID=$(get subnet private-subnet-$USER || true)
   echo "      router-$USER"
   ID=$(get_and_delete router router-$USER $PRIV_SUBNET_ID)
@@ -59,7 +58,7 @@ admin
 users=$(run "neutron subnet-list" | get_field 2 \
   | grep 'private-subnet-' | sed -e 's;private-subnet-;;')
 for USER in $users; do
-  user
+  user admin $USER
   echo "      private-subnet-$USER"
   ID=$(get_and_delete subnet private-subnet-$USER)
 done
@@ -71,21 +70,20 @@ admin
 users=$(run "neutron net-list" | get_field 2 \
   | grep 'private-' | sed -e 's;private-;;')
 for USER in $users; do
-  user
+  user admin $USER
   echo "      private-$USER"
   ID=$(get_and_delete net private-$USER)
 done
 echo "====> done."
 echo
 
-admin
 echo "====> Deleting users: .."
 admin
 users=$(run "openstack user list" | get_field 2  \
   | grep -vE '(demo|nova|neutron|cinder|glance|designate|admin)')
 for USER in $users; do
   echo "      $USER"
-  ID=$(get_and_delete USER $USER)
+  ID=$(get_and_delete user $USER)
 done
 echo "====> done."
 echo

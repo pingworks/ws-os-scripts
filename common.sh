@@ -71,29 +71,34 @@ function run {
 }
 
 function admin {
-  OS_USERNAME="admin"
-  OS_TENANT_NAME="admin"
-  if [ -z "$OS_ADMIN_PASSWORD" ]; then
-    read -s -p "Please enter the password for openstack user $USER: " OS_PASSWORD
-    OS_ADMIN_PASSWORD=$OS_PASSWORD
-    echo
-    echo
-  else
-    OS_PASSWORD=$OS_ADMIN_PASSWORD
-  fi
+  user admin admin
 }
 
 function user {
-  OS_USERNAME="$USER"
-  OS_TENANT_NAME="$USER"
-  if [ -z "$OS_USER_PASSWORD" ]; then
-    read -s -p "Please enter the password for openstack user $USER: " OS_PASSWORD
-    OS_USER_PASSWORD=$OS_PASSWORD
-    echo
-    echo
-  else
-    OS_PASSWORD=$OS_USER_PASSWORD
+  local user=$1
+  local tenant=$2
+
+  if [ -z "$user" -a ! -z "$USER" ]; then
+    user=$USER
   fi
+  if [ -z "$tenant" ]; then
+    tenant=$user
+  fi
+
+  if [ "$OS_USERNAME" = "$user" -a ! -z "$OS_USER_PASSWORD" ]; then
+    export OS_PASSWORD=$OS_USER_PASSWORD
+  else
+    if [ -r "$COOKBOOK_BASE/keystore/$user/password" ]; then
+      OS_PASSWORD=$(<$COOKBOOK_BASE/keystore/$user/password)
+    else
+      read -s -p "Please enter the password for openstack user $user: " OS_PASSWORD
+    fi
+    export OS_USER_PASSWORD=$OS_PASSWORD
+    echo
+    echo
+  fi
+  export OS_USERNAME="$user"
+  export OS_TENANT_NAME="$tenant"
 }
 
 function get {
@@ -107,7 +112,7 @@ function get {
 
   case "$res" in
     docker-image)
-      $EXEC "docker images" | awk '{print "| "$1":"$2" |"}'| get_matching_field 1 $name 1
+      ssh $OS_SSH_USER@$OS_CTRL "docker images" | awk '{print "| "$1":"$2" |"}'| get_matching_field 1 $name 1
       return $?
       ;;
     image)
@@ -201,7 +206,7 @@ function create {
 
   case "$res" in
     docker-image)
-      $EXEC "docker pull $name"
+      ssh $OS_SSH_USER@$OS_CTRL "docker pull $name"
       return $?
       ;;
     image)
@@ -414,17 +419,26 @@ function get_instances_in_domain {
 
 function prepare_keyfile {
   local user="$1"
-  filename=""
+  local keyfiles=""
   cd $COOKBOOK_BASE/keystore
-  keyfiles="id_rsa_$user.pub id_rsa_jenkins.pub"
+  keyfiles="$user/.ssh/id_rsa.pub id_rsa_jenkins.pub"
   if [ "$user" != "pingworks" ]; then
-    keyfiles="$keyfiles id_rsa_pingworks.pub"
+    keyfiles="pingworks/.ssh/id_rsa.pub"
   fi
   for file in $keyfiles; do
     if [ ! -r "$file" ]; then
-      echo "Keyfile not readable: $file";
+      echo "Keyfile not readable: $file" >&2
       exit 1
     fi
   done
   cat $keyfiles > key.pub
+}
+
+function get_user_pwd {
+  local user="$1"
+  if [ ! -r "$COOKBOOK_BASE/keystore/$user/password" ]; then
+    echo "Passwordfile not readable: $COOKBOOK_BASE/keystore/$user/password" >&2
+    exit 1
+  fi
+  cat $COOKBOOK_BASE/keystore/$user/password
 }

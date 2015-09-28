@@ -52,6 +52,7 @@ echo
 echo "====> Preparing docker images: .."
 EXEC_ORIG="$EXEC"
 for node in $COMPUTE_NODES; do
+  echo "      Node: $node"
   EXEC="ssh ${OS_SSH_USER}@${node}"
   echo "      $DOCKER_BASE_IMG"
   ID=$(get_or_create docker-image $DOCKER_BASE_IMG)
@@ -70,11 +71,7 @@ bash img-create.sh $DOCKER_BASE_IMG
 bash img-create.sh $DOCKER_JKMASTER_IMG
 bash img-create.sh $DOCKER_JKSLAVE_IMG
 
-if [ -r "$COOKBOOK_BASE/ws-users" ]; then
-  usernames=$(<$COOKBOOK_BASE/ws-users)
-else
-  read -p "Please enter a list of usernames separated by spaces: " usernames
-fi
+usernames=$(cd $COOKBOOK_BASE/keystore; ls | grep -v .pub)
 
 i=0
 bash $SCRIPTDIR/user-create.sh pingworks $i

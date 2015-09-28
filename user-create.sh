@@ -48,7 +48,7 @@ echo "====> done."
 echo
 
 echo "====> Creating user: $USER .."
-PASS=$USER
+PASS=$(get_user_pwd $USER)
 USER_ID=$(get_or_create user $USER $PASS)
 echo "      $USER_ID"
 echo "      $PASS"
@@ -61,11 +61,12 @@ echo "      $ROLE_ID"
 echo "====> done."
 echo
 
+OS_USERNAME="$USER"
+OS_USER_PASSWORD="$PASS"
 user
 
 echo "====> Creating keypair: $KEYPAIR .."
-scp -q $KEYFILE ${OS_SSH_USER}@${OS_CTRL}:pubkey.$USER
-KEYPAIR_ID=$(get_or_create keypair $KEYPAIR pubkey.$USER)
+KEYPAIR_ID=$(get_or_create keypair $KEYPAIR $KEYFILE)
 echo "      $KEYPAIR_ID"
 echo "====> done."
 echo
