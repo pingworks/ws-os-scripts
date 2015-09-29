@@ -101,7 +101,7 @@ roles:
         cname: '$cname'
         domain: '$DOMAIN'
         dns: '$OS_CTRL'
-        os_url: 'http://$OS_CTRL:5000/v2.0/tokens'
+        os_url: 'http://$OS_CTRL:5000/v2.0'
         os_user: '$OS_USERNAME'
         os_pass: '$OS_PASSWORD'
         os_keyname: '$KEYNAME'
