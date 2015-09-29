@@ -71,7 +71,7 @@ bash img-create.sh $DOCKER_BASE_IMG
 bash img-create.sh $DOCKER_JKMASTER_IMG
 bash img-create.sh $DOCKER_JKSLAVE_IMG
 
-usernames=$(cd $COOKBOOK_BASE/keystore; ls | grep -v .pub)
+usernames=$(cd $COOKBOOK_BASE/keystore; ls | grep -vE '(.pub|pingworks|testuser)'
 
 i=0
 bash $SCRIPTDIR/user-create.sh pingworks $i
