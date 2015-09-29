@@ -1,2 +1,2 @@
 jkmaster|default|pingworks/docker-ws-jkmaster:0.2|ws-env-pipeline::jkmaster|dash;repo;git
-jkslave1|default|pingworks/docker-ws-jkslave:0.2|ws-env-pipeline::jkslave|
+jkslave1|default|pingworks/docker-ws-jkslave:0.2|ws-env-pipeline::jkslave|frontend;backend
