@@ -49,12 +49,6 @@ for host in ${HOSTS[@]}; do
   read cname flavor image runlist cnames <<< "$(echo $host | tr '|' ' ')"
   read cookbook recipe <<< "$(echo $runlist | sed -e 's;::; ;g')"
 
-  echo "====> Pulling docker image: $image .."
-  DOCKER_IMG=$(get_or_create docker-image $image)
-  echo "      $DOCKER_IMG"
-  echo "====> done."
-  echo
-
   echo "====> Checking image availability in glance: $image .."
   IMAGE_ID=$(get image $image || usage "Glance image: $image does not exist.")
   echo "      $IMAGE_ID"
