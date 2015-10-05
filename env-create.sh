@@ -84,8 +84,14 @@ for host in ${HOSTS[@]}; do
   echo "====> done."
   echo
 
+  echo "====> Waiting for instance to become available .."
+  for ((i=0;i<=30;i++)); do ping -c 1 -W 1 $IP >/dev/null && break; echo -n "."; done
+  echo "====> done."
+  echo
+
   echo "====> Provisioning $NAME with $cookbook::$recipe.."
   cd $COOKBOOK_BASE/chef-$cookbook
+  rm -rf .mofa
   cat << EOF > .mofa.local.yml
 ---
 roles:
