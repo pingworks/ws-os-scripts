@@ -423,7 +423,7 @@ function prepare_keyfile {
   cd $COOKBOOK_BASE/keystore
   keyfiles="$user/.ssh/id_rsa.pub id_rsa_jenkins.pub"
   if [ "$user" != "pingworks" ]; then
-    keyfiles="pingworks/.ssh/id_rsa.pub"
+    keyfiles="$keyfiles pingworks/.ssh/id_rsa.pub"
   fi
   for file in $keyfiles; do
     if [ ! -r "$file" ]; then
