@@ -4,16 +4,12 @@ SCRIPTDIR=$(dirname $0)
 . $SCRIPTDIR/config.sh
 . $SCRIPTDIR/common.sh
 
-OS_SSH_USER="ubuntu"
-OS_CTRL="10.33.0.10"
-EXEC="ssh ${OS_SSH_USER}@${OS_CTRL}"
-
 function usage {
   local msg=$1
   echo
   echo $msg
   echo
-  echo "Usage: $0 <subdomain> <envfile> <keyname> [<nova-boot-options>]"
+  echo "Usage: $0 <img-name>"
   exit 1
 }
 

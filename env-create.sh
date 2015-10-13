@@ -89,15 +89,17 @@ for host in ${HOSTS[@]}; do
   echo "====> done."
   echo
 
-  echo "====> Provisioning $NAME with $cookbook::$recipe.."
-  cd $COOKBOOK_BASE/chef-$cookbook
-  rm -rf .mofa
-  cat << EOF > .mofa.local.yml
+  if [ ! -z "$cookbook" -a ! -z "$recipe" ]; then
+    echo "====> Provisioning $NAME with $cookbook::$recipe.."
+    cd $COOKBOOK_BASE/chef-$cookbook
+    rm -rf .mofa
+    cat << EOF > .mofa.local.yml
 ---
 roles:
   - name: ${cname/[0-9]/}
     attributes:
-      ws-base:
+      pw_base:
+        basedomain: '$BASEDOMAIN'
         cname: '$cname'
         domain: '$DOMAIN'
         dns: '$OS_CTRL'
@@ -106,8 +108,9 @@ roles:
         os_pass: '$OS_PASSWORD'
         os_keyname: '$KEYNAME'
 EOF
-  mofa provision . -T $NAME -o $cookbook::$recipe
-  cd -
-  echo "====> done."
-  echo
+    mofa provision . -T $NAME -o $cookbook::$recipe
+    cd -
+    echo "====> done."
+    echo
+  fi
 done

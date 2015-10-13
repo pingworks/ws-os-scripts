@@ -85,7 +85,9 @@ function user {
     tenant=$user
   fi
 
-  if [ "$OS_USERNAME" = "$user" -a ! -z "$OS_USER_PASSWORD" ]; then
+  if [ "$user" = "admin" -a ! -z "$OS_ADMIN_PASSWORD" ]; then
+    export OS_PASSWORD=$OS_ADMIN_PASSWORD
+  elif [ "$OS_USERNAME" = "$user" -a ! -z "$OS_USER_PASSWORD" ]; then
     export OS_PASSWORD=$OS_USER_PASSWORD
   else
     if [ -r "$COOKBOOK_BASE/keystore/$user/password" ]; then
@@ -212,7 +214,7 @@ function create {
     image)
       cmd="glance image-create"
       opts="--is-public true --container-format docker --disk-format raw --name"
-      run "docker save $name | OS_AUTH_URL=$OS_AUTH_URL OS_USERNAME=$OS_USERNAME OS_PASSWORD=$OS_PASSWORD OS_TENANT_NAME=$OS_TENANT_NAME  $cmd $opts $name" | get_matching_field 1 id 2
+      ssh $OS_SSH_USER@$OS_CTRL "docker save $name | OS_AUTH_URL=$OS_AUTH_URL OS_USERNAME=$OS_USERNAME OS_PASSWORD=$OS_PASSWORD OS_TENANT_NAME=$OS_TENANT_NAME  $cmd $opts $name" | get_matching_field 1 id 2
       return $?
       ;;
     domain)
@@ -441,4 +443,92 @@ function get_user_pwd {
     exit 1
   fi
   cat $COOKBOOK_BASE/keystore/$user/password
+}
+
+function setup_basics {
+  echo "====> Deleting cirros images: .."
+  admin
+  for img in cirros-0.3.2-x86_64-uec cirros-0.3.2-x86_64-uec-ramdisk cirros-0.3.2-x86_64-uec-kernel; do
+    echo "      $img"
+    get_and_delete image $img
+  done
+  echo "====> done."
+  echo
+
+  echo "====> Deleting demo networking components: .."
+  admin
+  PRIV_SUBNET_ID=$(get subnet private-subnet || true)
+  echo "      router1"
+  get_and_delete router router1 $PRIV_SUBNET_ID
+  echo "      private-subnet"
+  get_and_delete subnet private-subnet
+  echo "      private"
+  get_and_delete net private
+  echo "====> done."
+  echo
+
+  echo "====> Deleting existing flavors and creating default: .."
+  admin
+  for flv in tiny small medium large xlarge; do
+    echo "      m1.$flv"
+    get_and_delete flavor m1.$flv
+  done
+  OUT=$(get flavor default) || OUT=$(run "nova flavor-create --is-public True default 1 512 2 1")
+  echo "====> done."
+  echo
+}
+
+function setup_docker_imgs {
+  local images="$1"
+  local nodes="$2"
+  local EXEC=""
+  echo "====> Preparing docker images: .."
+  for node in $nodes; do
+    echo "      Node: $node"
+    EXEC="ssh ${OS_SSH_USER}@${node}"
+    echo "      $DOCKER_BASE_IMG"
+    ID=$($EXEC "docker images" | awk '{print "| "$1":"$2" |"}'| get_matching_field 1 $DOCKER_BASE_IMG 1) \
+      || $EXEC "docker pull $DOCKER_BASE_IMG > /dev/null"
+    for img in $images; do
+      echo "      $img"
+      ID=$($EXEC "docker images" | awk '{print "| "$1":"$2" |"}'| get_matching_field 1 $img 1) \
+        || cat $COOKBOOK_BASE/$(basename $img).img.gz | $EXEC "gzip -c -d | docker load"
+    done
+  done
+  echo "====> done."
+  echo
+}
+
+function setup_glance_imgs {
+  local images="$1"
+  bash img-create.sh $DOCKER_BASE_IMG
+  for img in $images; do
+    bash img-create.sh $img
+  done
+}
+
+function setup_users {
+  local usernames
+  bash $SCRIPTDIR/user-create.sh pingworks 0
+  i=1
+  for user in $usernames; do
+    bash $SCRIPTDIR/user-create.sh $user $i
+    ((i++))
+  done
+}
+
+function setup_pingworks_envs {
+  set -x
+  bash $SCRIPTDIR/env-create.sh pingworks envs/phonebook-pipeline-from-jkimg prod
+  bash $SCRIPTDIR/env-create.sh pingworks envs/phonebook-pipeline-from-jkimg dev
+  bash $SCRIPTDIR/env-create.sh pingworks envs/phonebook-testenv-from-img test01
+  set +x
+}
+
+function setup_user_envs {
+  local usernames
+  for user in $usernames; do
+    bash $SCRIPTDIR/env-create.sh $user envs/phonebook-pipeline-from-jkimg dev
+    bash $SCRIPTDIR/env-shutdown.sh $user
+  done
 }
