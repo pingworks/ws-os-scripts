@@ -508,12 +508,21 @@ function setup_glance_imgs {
 }
 
 function setup_users {
-  local usernames
-  bash $SCRIPTDIR/user-create.sh pingworks 0
-  i=1
+  local usernames="$1"
+  local net=$2
+  local netdigit=0
+
+  if [ -z "$net" ]; then
+    net=1
+  fi
   for user in $usernames; do
-    bash $SCRIPTDIR/user-create.sh $user $i
-    ((i++))
+    if [ "$user" = "pingworks" ]; then
+      netdigit=0
+    else
+      netdigit=$net
+    fi
+    bash $SCRIPTDIR/user-create.sh $user $net
+    ((net++))
   done
 }
 
@@ -521,12 +530,12 @@ function setup_pingworks_envs {
   set -x
   bash $SCRIPTDIR/env-create.sh pingworks envs/phonebook-pipeline-from-jkimg prod
   bash $SCRIPTDIR/env-create.sh pingworks envs/phonebook-pipeline-from-jkimg dev
-  bash $SCRIPTDIR/env-create.sh pingworks envs/phonebook-testenv-from-img test01
+  bash $SCRIPTDIR/env-create.sh pingworks envs/phonebook-testenv-from-img test01.prod
   set +x
 }
 
 function setup_user_envs {
-  local usernames
+  local usernames="$1"
   for user in $usernames; do
     bash $SCRIPTDIR/env-create.sh $user envs/phonebook-pipeline-from-jkimg dev
     bash $SCRIPTDIR/env-shutdown.sh $user
