@@ -17,12 +17,14 @@ function usage {
 
 function basics {
   setup_basics
+  setup_docker_hub_imgs "$DOCKER_HUB_IMAGES" "$COMPUTE_NODES"
   setup_docker_imgs "$IMAGES" "$COMPUTE_NODES"
-  setup_glance_imgs "$IMAGES"
+  setup_glance_imgs "$DOCKER_HUB_IMAGES $IMAGES"
 }
 
 function pingworks {
   setup_users pingworks
+  setup_mirror_env
   setup_pingworks_envs
 }
 
