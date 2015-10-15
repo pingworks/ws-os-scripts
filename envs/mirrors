@@ -1,0 +1,2 @@
+apt-mirror|default|pingworks/apt-mirror:0.4|pw_base::default|
+gem-mirror|default|pingworks/gem-mirror:0.2|pw_base::default|
