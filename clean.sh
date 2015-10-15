@@ -41,6 +41,18 @@ done
 echo "====> done."
 echo
 
+echo "====> Waiting for instances to disappear: .."
+admin
+i=0
+while [ ! -z "$(run "nova list --all-tenants 1" | get_field 2)" -a $i -lt 60 ]; do
+  echo -n "."
+  sleep 1
+  ((i++))
+done
+echo
+echo "====> done."
+echo
+
 echo "====> Deleting routers: .."
 admin
 users=$(run "neutron router-list" | get_field 2| sed -e 's;router-;;')
@@ -96,5 +108,15 @@ for USER in $users; do
   echo "      $USER"
   ID=$(get_and_delete project $USER)
 done
+echo "====> done."
+echo
+
+echo "====> Cleaning dnsmasq entries: .."
+ssh ubuntu@compute0 "sudo sed -i \
+  -e \"s;^#*address=/archive.ubuntu.com/.*$;#address=/archive.ubuntu.com/;g\" \
+  -e \"s;^#*address=/rubygems.org/.*$;#address=/rubygems.org/;g\" \
+  -e \"s;^#*address=/bundler.rubygems.org/.*$;#address=/bundler.rubygems.org/;g\" \
+  /etc/dnsmasq.d/pingworks"
+ssh ubuntu@compute0 sudo service dnsmasq restart
 echo "====> done."
 echo
