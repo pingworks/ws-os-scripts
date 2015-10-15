@@ -9,7 +9,7 @@ function usage {
   echo
   echo $msg
   echo
-  echo "Usage: $0 <user> <envfile> [<subdomain>] [<nova-boot-options>]"
+  echo "Usage: $0 <user> <envfile> [<subdomain>] [<nova-boot-options>] [<dns-server>]"
   exit 1
 }
 
@@ -36,6 +36,10 @@ user
 get keypair $KEYNAME >/dev/null || usage "Keypair not available: $KEYNAME"
 
 NOVA_BOOT_OPTS="$4"
+ENV_DNS="$OS_CTRL"
+if [ ! -z "$5" ]; then
+  ENV_DNS=$5
+fi
 
 set -e
 
@@ -86,6 +90,7 @@ for host in ${HOSTS[@]}; do
 
   echo "====> Waiting for instance to become available .."
   for ((i=0;i<=30;i++)); do ping -c 1 -W 1 $IP >/dev/null && break; echo -n "."; done
+  echo
   echo "====> done."
   echo
 
@@ -102,8 +107,10 @@ roles:
         basedomain: '$BASEDOMAIN'
         cname: '$cname'
         domain: '$DOMAIN'
-        dns: '$OS_CTRL'
-      $cookbook:
+        dns: '$ENV_DNS'
+EOF
+    if [ "$cookbook" != "pw_base" ]; then echo "      $cookbook:" >> .mofa.local.yml; fi
+    cat << EOF >> .mofa.local.yml
         os_url: 'http://$OS_CTRL:5000/v2.0'
         os_user: '$OS_USERNAME'
         os_pass: '$OS_PASSWORD'
