@@ -10,6 +10,9 @@ DOCKER_JKMASTER_IMG="pingworks/docker-ws-jkmaster:0.3"
 DOCKER_JKSLAVE_IMG="pingworks/docker-ws-jkslave:0.3"
 DOCKER_FRONTEND_IMG="pingworks/docker-ws-frontend:0.3"
 DOCKER_BACKEND_IMG="pingworks/docker-ws-backend:0.3"
+DOCKER_APT_MIRROR_IMG="pingworks/apt-mirror:0.4"
+DOCKER_GEM_MIRROR_IMG="pingworks/gem-mirror:0.2"
+DOCKER_HUB_IMAGES="$DOCKER_BASE_IMG $DOCKER_APT_MIRROR_IMG $DOCKER_GEM_MIRROR_IMG"
 IMAGES="$DOCKER_JKMASTER_IMG $DOCKER_JKSLAVE_IMG $DOCKER_FRONTEND_IMG $DOCKER_BACKEND_IMG"
 DEBUG=0
 unset USER
