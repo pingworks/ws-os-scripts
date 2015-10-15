@@ -588,7 +588,10 @@ function setup_mirror_env {
 
   echo "====> Updating dnsmasq: .."
   IP=$(get ip-association $INST_ID)
-  ssh ubuntu@compute0 "sudo sed -i -e \"s;^#*address=/rubygems.org/.*$;address=/rubygems.org/$IP;g\" /etc/dnsmasq.d/pingworks"
+  ssh ubuntu@compute0 "sudo sed -i \
+    -e \"s;^#*address=/rubygems.org/.*$;address=/rubygems.org/$IP;g\" \
+    -e \"s;^#*address=/bundler.rubygems.org/.*$;address=/bundler.rubygems.org/$IP;g\" \
+    /etc/dnsmasq.d/pingworks"
   ssh ubuntu@compute0 sudo service dnsmasq restart
   echo "====> done."
   echo
