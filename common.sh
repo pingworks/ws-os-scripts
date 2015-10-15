@@ -186,6 +186,14 @@ function get {
     flavor)
       cmd="nova flavor-list"
       ;;
+    aggregate)
+      cmd="nova aggregate-list"
+      ;;
+    aggregate-host)
+      cmd="nova aggregate-details $name"
+      run " $cmd" | awk -F'[ \t]*\\|[ \t]*' "{ if(\$5~/'$opts'/) print \$2 }"
+      return $?
+      ;;
     *)
       echo "Function get, unkown resource: $res"
       exit 1
@@ -296,6 +304,12 @@ function create {
       cmd="nova secgroup-add-rule $name"
       run "$cmd $opts" > /dev/null && echo $opts
       return $?
+      ;;
+    aggregate)
+      cmd="nova aggregate-create"
+      ;;
+    aggregate-host)
+      cmd="nova aggregate-add-host"
       ;;
     *)
       echo "Function create, unkown resource: $res"
@@ -476,6 +490,31 @@ function setup_basics {
   OUT=$(get flavor default) || OUT=$(run "nova flavor-create --is-public True default 1 512 2 1")
   echo "====> done."
   echo
+
+  echo "====> Creating availability-zone compute0: .."
+  admin
+  ID=$(get_or_create aggregate compute0 compute0)
+  ID=$(get_or_create aggregate-host compute0 compute0)
+  echo "====> done."
+  echo
+}
+
+function setup_docker_hub_imgs {
+  local images="$1"
+  local nodes="$2"
+  local EXEC=""
+  echo "====> Pulling docker images: .."
+  for node in $nodes; do
+    echo "      Node: $node"
+    EXEC="ssh ${OS_SSH_USER}@${node}"
+    for img in $images; do
+      echo "      $img"
+      ID=$($EXEC "docker images" | awk '{print "| "$1":"$2" |"}'| get_matching_field 1 $img 1) \
+        || $EXEC "docker pull $img > /dev/null"
+    done
+  done
+  echo "====> done."
+  echo
 }
 
 function setup_docker_imgs {
@@ -486,9 +525,6 @@ function setup_docker_imgs {
   for node in $nodes; do
     echo "      Node: $node"
     EXEC="ssh ${OS_SSH_USER}@${node}"
-    echo "      $DOCKER_BASE_IMG"
-    ID=$($EXEC "docker images" | awk '{print "| "$1":"$2" |"}'| get_matching_field 1 $DOCKER_BASE_IMG 1) \
-      || $EXEC "docker pull $DOCKER_BASE_IMG > /dev/null"
     for img in $images; do
       echo "      $img"
       ID=$($EXEC "docker images" | awk '{print "| "$1":"$2" |"}'| get_matching_field 1 $img 1) \
@@ -501,7 +537,6 @@ function setup_docker_imgs {
 
 function setup_glance_imgs {
   local images="$1"
-  bash img-create.sh $DOCKER_BASE_IMG
   for img in $images; do
     bash img-create.sh $img
   done
@@ -521,9 +556,42 @@ function setup_users {
     else
       netdigit=$net
     fi
-    bash $SCRIPTDIR/user-create.sh $user $net
+    bash $SCRIPTDIR/user-create.sh $user $netdigit
     ((net++))
   done
+}
+
+function setup_mirror_env {
+  set -x
+  bash $SCRIPTDIR/env-create.sh pingworks envs/mirrors mirrors "--availability-zone compute0" "8.8.8.8"
+  set +x
+
+  user pingworks
+  echo "====> Mounting apt-mirror volume: .."
+  INST_ID=$(get instance apt-mirror.mirrors.pingworks.ws.net)
+  ssh ubuntu@compute0 sudo docker-mount.sh nova-$INST_ID /data2/apt-mirror-ubuntu1404 /var/spool/apt-mirror
+  echo "====> done."
+  echo
+
+  echo "====> Updating dnsmasq: .."
+  IP=$(get ip-association $INST_ID)
+  ssh ubuntu@compute0 "sudo sed -i -e \"s;^#*address=/archive.ubuntu.com/.*$;address=/archive.ubuntu.com/$IP;g\" /etc/dnsmasq.d/pingworks"
+  ssh ubuntu@compute0 sudo service dnsmasq restart
+  echo "====> done."
+  echo
+
+  echo "====> Mounting gem-mirror volume: .."
+  INST_ID=$(get instance gem-mirror.mirrors.pingworks.ws.net)
+  ssh ubuntu@compute0 sudo docker-mount.sh nova-$INST_ID /data2/gem-mirror /data/rubygems
+  echo "====> done."
+  echo
+
+  echo "====> Updating dnsmasq: .."
+  IP=$(get ip-association $INST_ID)
+  ssh ubuntu@compute0 "sudo sed -i -e \"s;^#*address=/rubygems.org/.*$;address=/rubygems.org/$IP;g\" /etc/dnsmasq.d/pingworks"
+  ssh ubuntu@compute0 sudo service dnsmasq restart
+  echo "====> done."
+  echo
 }
 
 function setup_pingworks_envs {
@@ -531,6 +599,7 @@ function setup_pingworks_envs {
   bash $SCRIPTDIR/env-create.sh pingworks envs/phonebook-pipeline-from-jkimg prod
   bash $SCRIPTDIR/env-create.sh pingworks envs/phonebook-pipeline-from-jkimg dev
   bash $SCRIPTDIR/env-create.sh pingworks envs/phonebook-testenv-from-img test01.prod
+
   set +x
 }
 
