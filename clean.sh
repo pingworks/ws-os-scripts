@@ -17,6 +17,8 @@ function usage {
 
 read -p "Last chance to quit!!" ans
 
+delete_availability_zones
+
 admin
 echo "====> Deleting instances: .."
 for instance in $(run "nova list --all-tenants 1" | get_field 2); do

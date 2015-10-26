@@ -191,7 +191,8 @@ function get {
       ;;
     aggregate-host)
       cmd="nova aggregate-details $name"
-      run " $cmd" | awk -F'[ \t]*\\|[ \t]*' "{ if(\$5~/'$opts'/) print \$2 }"
+      ID=$(run " $cmd" | awk -F'[ \t]*\\|[ \t]*' "{ if(\$5~/'$opts'/) print \$2 }")
+      test ! -z "$ID"
       return $?
       ;;
     *)
@@ -233,6 +234,9 @@ function create {
     instance)
       cmd="nova boot"
       opts="$NOVA_BOOT_OPTS --flavor $opts --image $opts2 --key-name $KEYNAME"
+      if [ ! -z "$opts3" ]; then
+        opts="--availability-zone $opts3 $opts"
+      fi
       ;;
     record)
       cmd="designate record-create"
@@ -307,9 +311,18 @@ function create {
       ;;
     aggregate)
       cmd="nova aggregate-create"
+      idx_search=2
+      match="$name"
+      idx_result=1
       ;;
     aggregate-host)
       cmd="nova aggregate-add-host"
+      idx_search=2
+      match="$name"
+      idx_result=1
+      tmp="$opts"
+      opts="$name"
+      name="$tmp"
       ;;
     *)
       echo "Function create, unkown resource: $res"
@@ -396,6 +409,15 @@ function delete {
       ;;
     flavor)
       cmd="nova flavor-delete"
+      ;;
+    aggregate)
+      cmd="nova aggregate-delete"
+      ;;
+    aggregate-host)
+      cmd="nova aggregate-remove-host"
+      tmp="$opts"
+      opts="$name"
+      name="$tmp"
       ;;
     *)
       echo "Function delete, unkown resource: $res"
@@ -490,11 +512,22 @@ function setup_basics {
   OUT=$(get flavor default) || OUT=$(run "nova flavor-create --is-public True default 1 512 2 1")
   echo "====> done."
   echo
+}
 
-  echo "====> Creating availability-zone compute0: .."
+function setup_availability_zone {
+  local zone="$1"
+  local members="$2"
+  local member
+
+  delete_availability_zones
+
+  echo "====> Creating availability-zone $zone: .."
   admin
-  ID=$(get_or_create aggregate compute0 compute0)
-  ID=$(get_or_create aggregate-host compute0 compute0)
+  ID=$(get_or_create aggregate $zone $zone)
+  for member in $members; do
+    echo "      Member: $member"
+    ID=$(get_or_create aggregate-host $zone $member)
+  done
   echo "====> done."
   echo
 }
@@ -562,6 +595,9 @@ function setup_users {
 }
 
 function setup_mirror_env {
+
+  setup_availability_zone compute0 compute0
+
   set -x
   bash $SCRIPTDIR/env-create.sh pingworks envs/mirrors mirrors "--availability-zone compute0" "8.8.8.8"
   set +x
@@ -590,6 +626,7 @@ function setup_mirror_env {
   IP=$(get ip-association $INST_ID)
   ssh ubuntu@compute0 "sudo sed -i \
     -e \"s;^#*address=/rubygems.org/.*$;address=/rubygems.org/$IP;g\" \
+    -e \"s;^#*address=/api.rubygems.org/.*$;address=/api.rubygems.org/$IP;g\" \
     -e \"s;^#*address=/bundler.rubygems.org/.*$;address=/bundler.rubygems.org/$IP;g\" \
     /etc/dnsmasq.d/pingworks"
   ssh ubuntu@compute0 sudo service dnsmasq restart
@@ -598,7 +635,8 @@ function setup_mirror_env {
 }
 
 function setup_pingworks_envs {
-  set -x
+  setup_availability_zone performance "ctrl compute0"
+
   bash $SCRIPTDIR/env-create.sh pingworks envs/phonebook-pipeline-from-jkimg prod
   bash $SCRIPTDIR/env-create.sh pingworks envs/phonebook-pipeline-from-jkimg dev
   bash $SCRIPTDIR/env-create.sh pingworks envs/phonebook-testenv-from-img test01.prod
@@ -608,8 +646,28 @@ function setup_pingworks_envs {
 
 function setup_user_envs {
   local usernames="$1"
+
+  setup_availability_zone performance "ctrl compute0"
   for user in $usernames; do
     bash $SCRIPTDIR/env-create.sh $user envs/phonebook-pipeline-from-jkimg dev
     bash $SCRIPTDIR/env-shutdown.sh $user
   done
+}
+
+function delete_availability_zones {
+  local zone
+  local member
+
+  admin
+  echo "====> Deleting availability zone: .."
+  for zone in $(run "nova aggregate-list" | get_field 2 | grep -vE '^(Name|)$'); do
+    echo "      $zone"
+    for member in $(run "nova aggregate-details $zone" | get_matching_field 2 $zone 4 | sed -e 's/, / /g' -e "s/'//g"); do
+      echo "            $member"
+      ID=$(delete aggregate-host $zone $member)
+    done
+    ID=$(delete aggregate $zone)
+  done
+  echo "====> done."
+  echo
 }

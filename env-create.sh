@@ -50,7 +50,7 @@ echo "====> done."
 echo
 
 for host in ${HOSTS[@]}; do
-  read cname flavor image runlist cnames <<< "$(echo $host | tr '|' ' ')"
+  read cname flavor image runlist cnames zone<<< "$(echo $host | tr '|' ' ')"
   read cookbook recipe <<< "$(echo $runlist | sed -e 's;::; ;g')"
 
   echo "====> Checking image availability in glance: $image .."
@@ -61,7 +61,7 @@ for host in ${HOSTS[@]}; do
 
   echo "====> Starting instance: $cname, $flavor.."
   NAME=$cname.$DOMAIN
-  INST_ID=$(get_or_create instance $NAME $flavor $image)
+  INST_ID=$(get_or_create instance $NAME $flavor $image $zone)
   echo "      $INST_ID"
   echo "====> done."
   echo
@@ -96,7 +96,15 @@ for host in ${HOSTS[@]}; do
 
   if [ ! -z "$cookbook" -a ! -z "$recipe" ]; then
     echo "====> Provisioning $NAME with $cookbook::$recipe.."
-    cd $COOKBOOK_BASE/chef-$cookbook
+    if echo $cookbook | grep '@' >/dev/null; then
+      cd /tmp/
+      cookbook_name="${cookbook%@*}"
+      mofa_cookbook="$cookbook"
+    else
+      cd $COOKBOOK_BASE/chef-$cookbook
+      cookbook_name="$cookbook"
+      mofa_cookbook="."
+    fi
     rm -rf .mofa
     cat << EOF > .mofa.local.yml
 ---
@@ -109,14 +117,16 @@ roles:
         domain: '$DOMAIN'
         dns: '$ENV_DNS'
 EOF
-    if [ "$cookbook" != "pw_base" ]; then echo "      $cookbook:" >> .mofa.local.yml; fi
+    if [ "$cookbook_name" != "pw_base" ]; then echo "      $cookbook_name:" >> .mofa.local.yml; fi
     cat << EOF >> .mofa.local.yml
         os_url: 'http://$OS_CTRL:5000/v2.0'
         os_user: '$OS_USERNAME'
         os_pass: '$OS_PASSWORD'
         os_keyname: '$KEYNAME'
 EOF
-    mofa provision . -T $NAME -o $cookbook::$recipe
+    set -x
+    mofa provision $mofa_cookbook -T $NAME -o $cookbook_name::$recipe
+    set +x
     cd -
     echo "====> done."
     echo
