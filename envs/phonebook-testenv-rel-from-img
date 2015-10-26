@@ -1,0 +1,2 @@
+frontend|default|pingworks/docker-ws-frontend:0.3|ws-env-phonebook@0.1.0::frontend||
+backend|default|pingworks/docker-ws-backend:0.3|ws-env-phonebook@0.1.0::backend||
