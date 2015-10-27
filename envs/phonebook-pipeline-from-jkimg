@@ -1,2 +1,2 @@
-jkmaster|default|pingworks/docker-ws-jkmaster:0.3|ws-env-pipeline::jkmaster|dash;repo;git|performance
-jkslave1|default|pingworks/docker-ws-jkslave:0.3|ws-env-pipeline::jkslave|frontend;backend|
+jkmaster|default|pingworks/docker-ws-jkmaster:0.3|env_ws_pipeline::jkmaster|dash;repo;git|performance
+jkslave1|default|pingworks/docker-ws-jkslave:0.3|env_ws_pipeline::jkslave|frontend;backend|
