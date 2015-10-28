@@ -93,6 +93,8 @@ function generate_mofa_json {
   "$cookbook_name": {
 EOF
 )
+  else
+    json2=","
   fi
 
   json=$(cat <<EOF
@@ -134,11 +136,7 @@ function run_mofa {
     mofa_cookbook="$COOKBOOK_BASE/chef-$cookbook"
   fi
   json=$(generate_mofa_json "$tmpdir" "$cname" "$user" "$cookbook_name" "$os_user" "$os_pwd")
-  cd ~/workspace/cookbooks/mofa
-  set -x
-  mofa provision "$mofa_cookbook" -T "$NAME" -o "$mofa_runlist" -j "$json"
-  set +x
-  cd -
+  mofa provision "$mofa_cookbook" -T "$NAME" -o "$mofa_runlist" -j "$json" > /tmp/mofa-$NAME.log 2>&1
   echo "====> done."
   echo
 }

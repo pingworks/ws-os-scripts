@@ -30,7 +30,7 @@ function pingworks {
 }
 
 function users {
-  usernames=$(cd $COOKBOOK_BASE/keystore; ls | grep -vE '(.pub|pingworks|testuser)')
+  usernames=$(cd $COOKBOOK_BASE/keystore; ls | grep -vE '(.pub|pingworks|testuser|infra)')
   setup_users "$usernames"
   setup_user_envs "$usernames"
 }

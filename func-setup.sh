@@ -102,6 +102,7 @@ function setup_users {
   if [ -z "$net" ]; then
     net=2
   fi
+  local params=""
   for user in $usernames; do
     if [ "$user" = "infra" ]; then
       netdigit=0
@@ -110,9 +111,11 @@ function setup_users {
     else
       netdigit=$net
     fi
-    bash $SCRIPTDIR/user-create.sh $user $netdigit
+    [ ! -z "$params" ] && params="$params "
+    params="$params$user::::$netdigit"
     ((net++))
   done
+  run_in_parallel "bash $SCRIPTDIR/user-create.sh {3} {4}" "$params"
 }
 
 function setup_mirror_env {
@@ -158,19 +161,19 @@ function setup_mirror_env {
 function setup_pingworks_envs {
   setup_availability_zone performance "ctrl compute0"
 
-  bash $SCRIPTDIR/env-create.sh pingworks envs/phonebook-pipeline-from-jkimg prod
-  bash $SCRIPTDIR/env-create.sh pingworks envs/phonebook-testenv-from-img test01.prod
-  bash $SCRIPTDIR/env-create.sh pingworks envs/phonebook-pipeline-from-jkimg dev
+  run_in_parallel "bash $SCRIPTDIR/env-create.sh pingworks {3} {4}" "envs/phonebook-pipeline-from-jkimg::::prod envs/phonebook-pipeline-from-jkimg::::dev envs/phonebook-testenv-from-img::::test01.prod"
+}
 
-  set +x
+function setup_single_user_env {
+  local user=$1
+
+  bash $SCRIPTDIR/env-create.sh $user envs/phonebook-pipeline-from-jkimg dev
+  bash $SCRIPTDIR/env-shutdown.sh $user
 }
 
 function setup_user_envs {
   local usernames="$1"
 
   setup_availability_zone performance "ctrl compute0"
-  for user in $usernames; do
-    bash $SCRIPTDIR/env-create.sh $user envs/phonebook-pipeline-from-jkimg dev
-    bash $SCRIPTDIR/env-shutdown.sh $user
-  done
+  run_in_parallel "bash $SCRIPTDIR/env-create.sh {3} envs/phonebook-pipeline-from-jkimg dev; bash $SCRIPTDIR/env-shutdown.sh {3}" "$usernames"
 }
