@@ -95,40 +95,6 @@ for host in ${HOSTS[@]}; do
   echo
 
   if [ ! -z "$cookbook" -a ! -z "$recipe" ]; then
-    echo "====> Provisioning $NAME with $cookbook::$recipe.."
-    if echo $cookbook | grep '@' >/dev/null; then
-      cd /tmp/
-      cookbook_name="${cookbook%@*}"
-      mofa_cookbook="$cookbook"
-    else
-      cd $COOKBOOK_BASE/chef-$cookbook
-      cookbook_name="$cookbook"
-      mofa_cookbook="."
-    fi
-    rm -rf .mofa
-    cat << EOF > .mofa.local.yml
----
-roles:
-  - name: ${cname/[0-9]/}
-    attributes:
-      pw_base:
-        basedomain: '$BASEDOMAIN'
-        cname: '$cname'
-        domain: '$DOMAIN'
-        dns: '$ENV_DNS'
-EOF
-    if [ "$cookbook_name" != "pw_base" ]; then echo "      $cookbook_name:" >> .mofa.local.yml; fi
-    cat << EOF >> .mofa.local.yml
-        os_url: 'http://$OS_CTRL:5000/v2.0'
-        os_user: '$OS_USERNAME'
-        os_pass: '$OS_PASSWORD'
-        os_keyname: '$KEYNAME'
-EOF
-    set -x
-    mofa provision $mofa_cookbook -T $NAME -o $cookbook_name::$recipe
-    set +x
-    cd -
-    echo "====> done."
-    echo
+    run_mofa "$NAME" "$cname" "$USER" "$cookbook" "$recipe" "$OS_USERNAME" "$OS_PASSWORD"
   fi
 done

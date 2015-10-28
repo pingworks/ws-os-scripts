@@ -75,3 +75,70 @@ function delete_availability_zones {
   echo "====> done."
   echo
 }
+
+function generate_mofa_json {
+  local tmpdir="$1"
+  local cname="$2"
+  local user="$3"
+  local cookbook_name="$4"
+  local os_user="$5"
+  local os_pwd="$6"
+
+  local json
+  local json2
+
+  if [ "$cookbook_name" != "pw_base" ]; then
+    json2=$(cat <<EOF
+  },
+  "$cookbook_name": {
+EOF
+)
+  fi
+
+  json=$(cat <<EOF
+{
+  "pw_base": {
+    "basedomain": "$BASEDOMAIN",
+    "cname": "$cname",
+    "domain": "$DOMAIN",
+    "dns": "$ENV_DNS"
+$json2
+    "os_url": "http://$OS_CTRL:5000/v2.0",
+    "os_user": "$os_user",
+    "os_pass": "$os_pwd",
+    "os_keyname": "$user"
+  }
+}
+EOF
+)
+  echo "$json"
+}
+
+function run_mofa {
+  local name="$1"
+  local cname="$2"
+  local user="$3"
+  local cookbook="$4"
+  local recipe="$5"
+  local os_user="$6"
+  local os_pwd="$7"
+
+  local json
+
+  echo "====> Provisioning $name with $cookbook::$recipe.."
+  cookbook_name="${cookbook%@*}"
+  mofa_runlist="${cookbook%@*}::$recipe"
+  if echo $cookbook | grep '@' >/dev/null; then
+    mofa_cookbook="$cookbook"
+  else
+    mofa_cookbook="$COOKBOOK_BASE/chef-$cookbook"
+  fi
+  json=$(generate_mofa_json "$tmpdir" "$cname" "$user" "$cookbook_name" "$os_user" "$os_pwd")
+  cd ~/workspace/cookbooks/mofa
+  set -x
+  mofa provision "$mofa_cookbook" -T "$NAME" -o "$mofa_runlist" -j "$json"
+  set +x
+  cd -
+  echo "====> done."
+  echo
+}
