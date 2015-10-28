@@ -20,11 +20,12 @@ function basics {
   setup_docker_hub_imgs "$DOCKER_HUB_IMAGES" "$COMPUTE_NODES"
   setup_docker_imgs "$IMAGES" "$COMPUTE_NODES"
   setup_glance_imgs "$DOCKER_HUB_IMAGES $IMAGES"
+  setup_users infra
+  setup_mirror_env
 }
 
 function pingworks {
   setup_users pingworks
-  setup_mirror_env
   setup_pingworks_envs
 }
 

@@ -581,11 +581,13 @@ function setup_users {
   local netdigit=0
 
   if [ -z "$net" ]; then
-    net=1
+    net=2
   fi
   for user in $usernames; do
-    if [ "$user" = "pingworks" ]; then
+    if [ "$user" = "infra" ]; then
       netdigit=0
+    elif [ "$user" = "pingworks" ]; then
+      netdigit=1
     else
       netdigit=$net
     fi
@@ -599,12 +601,12 @@ function setup_mirror_env {
   setup_availability_zone compute0 compute0
 
   set -x
-  bash $SCRIPTDIR/env-create.sh pingworks envs/mirrors mirrors "--availability-zone compute0" "8.8.8.8"
+  bash $SCRIPTDIR/env-create.sh infra envs/mirrors "" "--availability-zone compute0" "8.8.8.8"
   set +x
 
-  user pingworks
+  user infra
   echo "====> Mounting apt-mirror volume: .."
-  INST_ID=$(get instance apt-mirror.mirrors.pingworks.ws.net)
+  INST_ID=$(get instance apt-mirror.infra.ws.net)
   ssh ubuntu@compute0 sudo docker-mount.sh nova-$INST_ID /data2/apt-mirror-ubuntu1404 /var/spool/apt-mirror
   echo "====> done."
   echo
@@ -617,7 +619,7 @@ function setup_mirror_env {
   echo
 
   echo "====> Mounting gem-mirror volume: .."
-  INST_ID=$(get instance gem-mirror.mirrors.pingworks.ws.net)
+  INST_ID=$(get instance gem-mirror.infra.ws.net)
   ssh ubuntu@compute0 sudo docker-mount.sh nova-$INST_ID /data2/gem-mirror /data/rubygems
   echo "====> done."
   echo
@@ -638,8 +640,8 @@ function setup_pingworks_envs {
   setup_availability_zone performance "ctrl compute0"
 
   bash $SCRIPTDIR/env-create.sh pingworks envs/phonebook-pipeline-from-jkimg prod
-  bash $SCRIPTDIR/env-create.sh pingworks envs/phonebook-pipeline-from-jkimg dev
   bash $SCRIPTDIR/env-create.sh pingworks envs/phonebook-testenv-from-img test01.prod
+  bash $SCRIPTDIR/env-create.sh pingworks envs/phonebook-pipeline-from-jkimg dev
 
   set +x
 }
