@@ -106,14 +106,21 @@ function user {
 function run_in_parallel {
   local task="$1"
   local params="$2"
+  local fixedcolor="$3"
 
   local table=""
   local i=1
+  local color=""
   # add colorcodes to input params
   for set in $params; do
     ((mod=$i % 6)) || mod=6
     [ ! -z "$table" ] && table="$table\n"
-    table="$table$(tput setaf $mod)::::$(tput sgr0)::::$set"
+    if [ ! -z "$fixedcolor" ]; then
+      color="$fixedcolor"
+    else
+      color="$mod"
+    fi
+    table="$table$(tput setaf $color)::::$(tput sgr0)::::$set"
     ((i++))
   done
   echo -e "$table" | parallel -u -j $PARALLEL --colsep '::::' "set -o pipefail; ( $task ) 2>&1| sed 's/.*/{1}&{2}/'"
