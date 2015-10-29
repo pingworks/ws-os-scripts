@@ -113,7 +113,7 @@ function run_in_parallel {
   local color=""
   # add colorcodes to input params
   for set in $params; do
-    ((mod=$i % 6)) || mod=6
+    ((mod=$i % $PARALLEL)) || mod=$PARALLEL
     [ ! -z "$table" ] && table="$table\n"
     if [ ! -z "$fixedcolor" ]; then
       color="$fixedcolor"
