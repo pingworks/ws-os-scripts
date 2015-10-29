@@ -2,7 +2,6 @@
 
 SCRIPTDIR=$(dirname $0)
 . $SCRIPTDIR/config.sh
-. $SCRIPTDIR/common.sh
 
 function usage {
   local msg=$1
@@ -49,6 +48,7 @@ echo "      $DNS_ZONE_ID"
 echo "====> done."
 echo
 
+mofa_params=""
 for host in ${HOSTS[@]}; do
   read cname flavor image runlist cnames zone<<< "$(echo $host | tr '|' ' ')"
   read cookbook recipe <<< "$(echo $runlist | sed -e 's;::; ;g')"
@@ -95,6 +95,11 @@ for host in ${HOSTS[@]}; do
   echo
 
   if [ ! -z "$cookbook" -a ! -z "$recipe" ]; then
-    run_mofa "$NAME" "$cname" "$USER" "$cookbook" "$recipe" "$OS_USERNAME" "$OS_PASSWORD"
+    [ ! -z "$mofa_params" ] && mofa_params="$mofa_params "
+    mofa_params="${mofa_params}$NAME::::$cname::::$USER::::$cookbook::::$recipe::::$OS_USERNAME::::$OS_PASSWORD"
   fi
 done
+
+if [ ! -z "$mofa_params" ]; then
+  run_in_parallel ". $SCRIPTDIR/config.sh; DOMAIN=$DOMAIN ENV_DNS=$ENV_DNS run_mofa {3} {4} {5} {6} {7} {8} {9}" "$mofa_params" 7
+fi
