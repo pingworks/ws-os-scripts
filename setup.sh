@@ -24,12 +24,12 @@ function basics {
 }
 
 function pingworks {
-  setup_users pingworks
+  setup_users "pingworks demo"
   setup_pingworks_envs
 }
 
 function users {
-  usernames=$(cd $COOKBOOK_BASE/keystore; ls | grep -vE '(.pub|pingworks|testuser|infra)')
+  usernames=$(cd $COOKBOOK_BASE/keystore; ls | grep -vE '(.pub|pingworks|testuser|infra|demo)')
   setup_users "$usernames"
   setup_user_envs "$usernames"
 }
