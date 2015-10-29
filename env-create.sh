@@ -8,7 +8,7 @@ function usage {
   echo
   echo $msg
   echo
-  echo "Usage: $0 <user> <envfile> [<subdomain>] [<nova-boot-options>] [<dns-server>]"
+  echo "Usage: $0 <user> <envfile> [<subdomain>] [<nova-boot-options>] [<dns-server>] [<cookbook>]"
   exit 1
 }
 
@@ -40,6 +40,11 @@ if [ ! -z "$5" ]; then
   ENV_DNS=$5
 fi
 
+CB_OVERWRITE=""
+if [ ! -z "$6" ]; then
+  CB_OVERWRITE=$6
+fi
+
 set -e
 
 echo "====> Creating dns zone: $DOMAIN .."
@@ -52,6 +57,9 @@ mofa_params=""
 for host in ${HOSTS[@]}; do
   read cname flavor image runlist cnames zone<<< "$(echo $host | tr '|' ' ')"
   read cookbook recipe <<< "$(echo $runlist | sed -e 's;::; ;g')"
+  if [ ! -z "$CB_OVERWRITE" ]; then
+    cookbook="$CB_OVERWRITE"
+  fi
 
   echo "====> Checking image availability in glance: $image .."
   IMAGE_ID=$(get image $image || usage "Glance image: $image does not exist.")
