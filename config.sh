@@ -1,3 +1,8 @@
+#!/bin/bash
+
+SCRIPTDIR=$(dirname ${BASH_SOURCE[0]})
+. $SCRIPTDIR/common.sh
+
 OS_SSH_USER="ubuntu"
 OS_CTRL="10.33.0.10"
 EXEC="bash -c"
