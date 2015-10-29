@@ -10,6 +10,10 @@ function join {
   echo $result
 }
 
+function get_matching_fields {
+  get_matching_field "$1" "$2" "$3" 1
+  return $?
+}
 # Grab a numbered field from python prettytable output
 # Fields are numbered starting with 1
 # Reverse syntax is supported: -1 is the last field, -2 is second to last, etc.
@@ -34,7 +38,9 @@ function get_matching_field {
           if [ ! -z "$3" ]; then
             echo -e "$result"
           fi
-          return 0
+          if [ -z "$4" ]; then
+            return 0
+          fi
         fi
     done
     return 1

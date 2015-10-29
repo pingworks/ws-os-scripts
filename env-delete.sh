@@ -38,3 +38,10 @@ echo "====> Deleting dns zone: $DOMAIN .."
 DNS_ZONE_ID=$(get_and_delete domain $DOMAIN)
 echo "====> done."
 echo
+
+for ip in $(neutron floatingip-list | get_matching_fields 2 '' 1); do
+  echo "====> Deleting ip: $ip .."
+  ID=$(neutron floatingip-delete $ip)
+  echo "====> done."
+  echo
+done

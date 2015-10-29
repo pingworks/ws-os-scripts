@@ -75,7 +75,7 @@ for host in ${HOSTS[@]}; do
   echo
 
   echo "====> Creating IP: $NAME .."
-  IP=$(get ip-association $INST_ID || create ip-association $INST_ID $(get_or_create floating-ip))
+  IP=$(get ip-association $INST_ID || create ip-association $INST_ID $(create floating-ip))
   echo "      $IP"
   echo "====> done."
   echo
