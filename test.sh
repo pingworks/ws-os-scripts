@@ -2,7 +2,6 @@
 
 SCRIPTDIR=$(dirname $0)
 . $SCRIPTDIR/config.sh
-. $SCRIPTDIR/common.sh
 
 basedir=$(dirname $0)
 
