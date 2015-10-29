@@ -29,6 +29,7 @@ function setup_basics {
     get_and_delete flavor m1.$flv
   done
   OUT=$(get flavor default) || OUT=$(run "nova flavor-create --is-public True default 1 512 2 1")
+  OUT=$(get flavor medium) || OUT=$(run "nova flavor-create --is-public True medium 2 1024 2 1")
   echo "====> done."
   echo
 }
