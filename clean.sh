@@ -104,7 +104,7 @@ echo
 echo "====> Deleting users: .."
 admin
 users=$(run "openstack user list" | get_field 2  \
-  | grep -vE '(demo|nova|neutron|cinder|glance|designate|admin)')
+  | grep -vE '(nova|neutron|cinder|glance|designate|admin)')
 for USER in $users; do
   echo "      $USER"
   ID=$(get_and_delete user $USER)
