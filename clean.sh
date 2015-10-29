@@ -134,9 +134,9 @@ echo "====> done."
 echo
 
 echo "====> Rebooting nodes: .."
-for node in "ctrl compute1 compute2 compute0"; do
+for node in ctrl compute1 compute2 compute0; do
   echo "      $node"
   ssh ubuntu@$node "sudo reboot"
 done
-scho "====> done."
+echo "====> done."
 echo
