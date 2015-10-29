@@ -2,7 +2,6 @@
 
 SCRIPTDIR=$(dirname $0)
 . $SCRIPTDIR/config.sh
-. $SCRIPTDIR/common.sh
 
 basedir=$(dirname $0)
 
@@ -91,6 +90,17 @@ done
 echo "====> done."
 echo
 
+echo "====> Deleting floating-ips: .."
+admin
+ips=$(run "neutron floatingip-list" | get_field 1)
+for IP in $ips; do
+  user admin $USER
+  echo "      $IP"
+  ID=$(neutron floatingip-delete $IP)
+done
+echo "====> done."
+echo
+
 echo "====> Deleting users: .."
 admin
 users=$(run "openstack user list" | get_field 2  \
@@ -121,4 +131,12 @@ ssh ubuntu@compute0 "sudo sed -i \
   /etc/dnsmasq.d/pingworks"
 ssh ubuntu@compute0 sudo service dnsmasq restart
 echo "====> done."
+echo
+
+echo "====> Rebooting nodes: .."
+for node in "ctrl compute1 compute2 compute0"; do
+  echo "      $node"
+  ssh ubuntu@$node "sudo reboot"
+done
+scho "====> done."
 echo
