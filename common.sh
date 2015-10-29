@@ -137,6 +137,8 @@ function run_mofa {
   fi
   json=$(generate_mofa_json "$tmpdir" "$cname" "$user" "$cookbook_name" "$os_user" "$os_pwd")
   mofa provision "$mofa_cookbook" -T "$name" -o "$mofa_runlist" -j "$json" > /tmp/mofa-$name.log 2>&1
+  exit_code=$?
   echo "====> done."
   echo
+  return $exit_code
 }
