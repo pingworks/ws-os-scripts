@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SCRIPTDIR=$(dirname $0)
+SCRIPTDIR=$(dirname ${BASH_SOURCE[0]})
 . $SCRIPTDIR/func-basic.sh
 . $SCRIPTDIR/func-crud.sh
 . $SCRIPTDIR/func-setup.sh
@@ -136,7 +136,7 @@ function run_mofa {
     mofa_cookbook="$COOKBOOK_BASE/chef-$cookbook"
   fi
   json=$(generate_mofa_json "$tmpdir" "$cname" "$user" "$cookbook_name" "$os_user" "$os_pwd")
-  mofa provision "$mofa_cookbook" -T "$NAME" -o "$mofa_runlist" -j "$json" > /tmp/mofa-$NAME.log 2>&1
+  mofa provision "$mofa_cookbook" -T "$name" -o "$mofa_runlist" -j "$json" > /tmp/mofa-$name.log 2>&1
   echo "====> done."
   echo
 }
