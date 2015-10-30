@@ -16,21 +16,25 @@ USER=$1
 if [ -z "$USER" ]; then
   usage
 fi
-OS_USER=$USER
-
-DOMAIN="$USER.$BASEDOMAIN"
-if [ ! -z "$2" ]; then
-  DOMAIN="$2.$DOMAIN"
+if [ "$USER" = "all" ]; then
+  users=$(get_all_users)
+else
+  users=$USER
 fi
-
-user
 
 set -e
 
-echo "====> Starting all instances in: $DOMAIN .."
-for instance in $(get_instances_in_domain $DOMAIN "--status SHUTOFF"); do
-  echo "      $instance"
-  run "nova start $instance" >/dev/null
+for USER in $users; do
+  DOMAIN="$USER.$BASEDOMAIN"
+  if [ ! -z "$2" ]; then
+    DOMAIN="$2.$DOMAIN"
+  fi
+  user
+  echo "====> Starting all instances in: $DOMAIN .."
+  for instance in $(get_instances_in_domain $DOMAIN "--status SHUTOFF"); do
+    echo "      $instance"
+    run "nova start $instance" >/dev/null
+  done
+  echo "====> done."
+  echo
 done
-echo "====> done."
-echo

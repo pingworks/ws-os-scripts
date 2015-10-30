@@ -145,3 +145,8 @@ function run_mofa {
   echo
   return $exit_code
 }
+
+function get_all_users {
+  cd $COOKBOOK_BASE/keystore;
+  ls | grep -vE '(.pub|pingworks|testuser|infra|demo)'
+}
